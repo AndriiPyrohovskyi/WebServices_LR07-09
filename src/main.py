@@ -3,18 +3,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.external_api import router as external_router
 from src.users import router as users_router
+from src.cache import router as cache_router
 from src.database import init_db, close_db
+from src.cache import init_redis, close_redis
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Lifecycle manager for database connection.
+    Lifecycle manager for database and Redis connections.
     """
-    # Startup: Initialize database
+    # Startup: Initialize database and Redis
     await init_db()
+    await init_redis()
     yield
-    # Shutdown: Close database connection
+    # Shutdown: Close connections
+    await close_redis()
     await close_db()
 
 
@@ -39,6 +43,7 @@ app.add_middleware(
 # Include routers
 app.include_router(external_router.router)
 app.include_router(users_router.router)
+app.include_router(cache_router.router)
 
 
 @app.get("/", tags=["Root"])
@@ -70,6 +75,12 @@ async def root():
                 "get_by_id": "GET /users/{user_id}",
                 "update": "PUT /users/{user_id}",
                 "delete": "DELETE /users/{user_id}",
+            },
+            "cache": {
+                "set": "POST /cache/set",
+                "get": "GET /cache/get/{key}",
+                "delete": "DELETE /cache/delete/{key}",
+                "list_keys": "GET /cache/keys",
             },
         },
     }
