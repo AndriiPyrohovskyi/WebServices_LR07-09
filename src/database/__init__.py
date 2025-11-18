@@ -117,6 +117,4 @@ async def close_db():
     Close database connection.
     Should be called on application shutdown.
     """
-    await engine.dispose()plication shutdown.
-    """
     await engine.dispose()
