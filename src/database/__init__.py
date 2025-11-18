@@ -8,6 +8,10 @@ from sqlalchemy.orm import declarative_base
 # Get DATABASE_URL from environment
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/f1_db")
 
+# Replace postgresql:// with postgresql+asyncpg:// for async support
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
