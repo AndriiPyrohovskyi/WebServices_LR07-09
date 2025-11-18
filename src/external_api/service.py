@@ -10,10 +10,11 @@ from src.external_api.config import f1_config as cfg
 
 
 class F1Service:
-    """Service to interact with F1 Ergast API."""
+    """Service to interact with F1 API."""
 
     def __init__(self):
-        self.base_url = cfg.ergast_api_base_url
+        # Using official Ergast mirror API
+        self.base_url = "https://api.jolpi.ca/ergast/f1"
         self.timeout = cfg.default_timeout
 
     def get_current_season_drivers(self) -> F1DataModel:

@@ -33,7 +33,7 @@ class F1Config:
     max_year: int = 2100
 
     # API Configuration
-    ergast_api_base_url: str = "http://ergast.com/api/f1"
+    ergast_api_base_url: str = "https://ergast.com/api/f1"
     default_timeout: int = 10
 
 
