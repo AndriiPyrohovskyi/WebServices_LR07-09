@@ -1,9 +1,12 @@
 """
 SQLAlchemy ORM models for the database.
 """
+
 from datetime import datetime
-from sqlalchemy import String, DateTime, Boolean, Integer
+
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from src.database import Base
 
 
@@ -11,6 +14,7 @@ class User(Base):
     """
     User model for storing user information.
     """
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)

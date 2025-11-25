@@ -1,10 +1,12 @@
 """
 Service layer for User business logic.
 """
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.users.repository import UserRepository
-from src.users.schemas import UserCreate, UserUpdate, UserResponse
+from src.users.schemas import UserCreate, UserResponse, UserUpdate
 
 
 class UserService:
@@ -19,16 +21,14 @@ class UserService:
         existing_user = await self.repository.get_by_username(db, user_data.username)
         if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Username '{user_data.username}' already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail=f"Username '{user_data.username}' already exists"
             )
 
         # Check if email already exists
         existing_email = await self.repository.get_by_email(db, user_data.email)
         if existing_email:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Email '{user_data.email}' already registered"
+                status_code=status.HTTP_400_BAD_REQUEST, detail=f"Email '{user_data.email}' already registered"
             )
 
         # Create user
@@ -44,10 +44,7 @@ class UserService:
         """Get user by ID."""
         user = await self.repository.get_by_id(db, user_id)
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {user_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
         return UserResponse.model_validate(user)
 
     async def update_user(self, db: AsyncSession, user_id: int, user_data: UserUpdate) -> UserResponse:
@@ -55,18 +52,14 @@ class UserService:
         # Check if user exists
         existing_user = await self.repository.get_by_id(db, user_id)
         if not existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {user_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
 
         # Check username uniqueness if being updated
         if user_data.username and user_data.username != existing_user.username:
             username_check = await self.repository.get_by_username(db, user_data.username)
             if username_check:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Username '{user_data.username}' already exists"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Username '{user_data.username}' already exists"
                 )
 
         # Check email uniqueness if being updated
@@ -74,8 +67,7 @@ class UserService:
             email_check = await self.repository.get_by_email(db, user_data.email)
             if email_check:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Email '{user_data.email}' already registered"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=f"Email '{user_data.email}' already registered"
                 )
 
         # Update user
@@ -86,8 +78,5 @@ class UserService:
         """Delete user."""
         deleted = await self.repository.delete(db, user_id)
         if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {user_id} not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
         return {"message": f"User {user_id} deleted successfully"}

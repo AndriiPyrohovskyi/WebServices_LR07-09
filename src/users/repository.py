@@ -1,8 +1,10 @@
 """
 Repository layer for User CRUD operations.
 """
-from sqlalchemy import select, update, delete
+
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.database.models import User
 from src.users.schemas import UserCreate, UserUpdate
 
@@ -22,12 +24,7 @@ class UserRepository:
     @staticmethod
     async def get_all(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[User]:
         """Get all users with pagination."""
-        result = await db.execute(
-            select(User)
-            .offset(skip)
-            .limit(limit)
-            .order_by(User.created_at.desc())
-        )
+        result = await db.execute(select(User).offset(skip).limit(limit).order_by(User.created_at.desc()))
         return list(result.scalars().all())
 
     @staticmethod
@@ -62,13 +59,9 @@ class UserRepository:
             return user
 
         # Update user
-        await db.execute(
-            update(User)
-            .where(User.id == user_id)
-            .values(**update_data)
-        )
+        await db.execute(update(User).where(User.id == user_id).values(**update_data))
         await db.flush()
-        
+
         # Refresh and return
         await db.refresh(user)
         return user

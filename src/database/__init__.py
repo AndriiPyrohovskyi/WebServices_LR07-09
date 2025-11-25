@@ -1,10 +1,12 @@
 """
 Database connection configuration for PostgreSQL with SQLAlchemy async engine.
 """
+
 import os
 import subprocess
 from pathlib import Path
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
 # Get DATABASE_URL from environment
@@ -53,43 +55,37 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
+
+
 def run_migrations():
     """
     Run Alembic migrations programmatically.
     This function executes 'alembic upgrade head' to apply all pending migrations.
-    
+
     If DROP_DB_ON_START environment variable is set to 'true',
     it will downgrade to base (drop all tables) and then upgrade again.
     """
     # Get the project root directory (where alembic.ini is located)
     project_root = Path(__file__).parent.parent.parent
-    
+
     # Check if we need to drop database first
     drop_db = os.getenv("DROP_DB_ON_START", "false").lower() == "true"
-    
+
     try:
         if drop_db:
             print("⚠️  DROP_DB_ON_START is enabled - dropping all tables...")
             subprocess.run(
-                ["alembic", "downgrade", "base"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-                text=True
+                ["alembic", "downgrade", "base"], cwd=project_root, check=True, capture_output=True, text=True
             )
             print("✅ Database dropped successfully")
-        
+
         print("🔄 Running Alembic migrations...")
         result = subprocess.run(
-            ["alembic", "upgrade", "head"],
-            cwd=project_root,
-            check=True,
-            capture_output=True,
-            text=True
+            ["alembic", "upgrade", "head"], cwd=project_root, check=True, capture_output=True, text=True
         )
         print("✅ Migrations applied successfully")
         print(result.stdout)
-        
+
     except subprocess.CalledProcessError as e:
         print(f"❌ Migration failed: {e}")
         print(f"STDOUT: {e.stdout}")
@@ -107,7 +103,7 @@ async def init_db():
     """
     # Run migrations synchronously
     run_migrations()
-    
+
     # Note: We don't use Base.metadata.create_all() anymore
     # because Alembic handles schema creation
 

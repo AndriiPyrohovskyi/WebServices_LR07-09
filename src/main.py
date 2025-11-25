@@ -1,11 +1,16 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.cache import close_redis, init_redis
+from src.cache import router as cache_router
+from src.common import router as common_router
+from src.core.logging.logging_config import setup_logging
+from src.core.logging.sentry import init_sentry
+from src.database import close_db, init_db
 from src.external_api import router as external_router
 from src.users import router as users_router
-from src.cache import router as cache_router
-from src.database import init_db, close_db
-from src.cache import init_redis, close_redis
 
 
 @asynccontextmanager
@@ -13,7 +18,9 @@ async def lifespan(app: FastAPI):
     """
     Lifecycle manager for database and Redis connections.
     """
-    # Startup: Initialize database and Redis
+    # Startup: Sentry and logging
+    init_sentry()
+    setup_logging()
     await init_db()
     await init_redis()
     yield
@@ -44,6 +51,7 @@ app.add_middleware(
 app.include_router(external_router.router)
 app.include_router(users_router.router)
 app.include_router(cache_router.router)
+app.include_router(common_router.router)
 
 
 @app.get("/", tags=["Root"])
@@ -96,6 +104,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import os
+
     import uvicorn
 
     port = int(os.getenv("PORT", "8080"))

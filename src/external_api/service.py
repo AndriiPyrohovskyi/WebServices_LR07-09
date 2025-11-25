@@ -1,12 +1,16 @@
+import json
+from typing import Optional
+
 import requests
-from typing import Optional, List, Dict, Any
+
+from src.cache import get_redis
+from src.external_api.config import f1_config as cfg
 from src.external_api.models import (
     F1DataModel,
     F1ProcessedModel,
-    DriverModel,
-    RaceModel,
 )
-from src.external_api.config import f1_config as cfg
+
+CACHE_TTL = 300  # seconds
 
 
 class F1Service:
@@ -30,9 +34,17 @@ class F1Service:
         drivers_data = data["MRData"]["DriverTable"]["Drivers"]
         season = data["MRData"]["DriverTable"].get("season", "current")
 
-        return F1DataModel(
-            data_type="drivers", season=season, items=drivers_data
-        )
+        return F1DataModel(data_type="drivers", season=season, items=drivers_data)
+
+    async def get_current_season_drivers_cached(self) -> F1DataModel:
+        redis = await get_redis()
+        cache_key = "f1:drivers:current"
+        cached = await redis.get(cache_key)
+        if cached:
+            return F1DataModel(**json.loads(cached))
+        data = self.get_current_season_drivers()
+        await redis.set(cache_key, json.dumps(data.model_dump()), ex=CACHE_TTL)
+        return data
 
     def get_current_season_races(self) -> F1DataModel:
         """
@@ -47,9 +59,17 @@ class F1Service:
         races_data = data["MRData"]["RaceTable"]["Races"]
         season = data["MRData"]["RaceTable"].get("season", "current")
 
-        return F1DataModel(
-            data_type="races", season=season, items=races_data
-        )
+        return F1DataModel(data_type="races", season=season, items=races_data)
+
+    async def get_current_season_races_cached(self) -> F1DataModel:
+        redis = await get_redis()
+        cache_key = "f1:races:current"
+        cached = await redis.get(cache_key)
+        if cached:
+            return F1DataModel(**json.loads(cached))
+        data = self.get_current_season_races()
+        await redis.set(cache_key, json.dumps(data.model_dump()), ex=CACHE_TTL)
+        return data
 
     def get_driver_standings(self, season: Optional[str] = "current") -> F1DataModel:
         """
@@ -63,9 +83,7 @@ class F1Service:
         data = response.json()
 
         standings_data = data["MRData"]["StandingsTable"]["StandingsLists"]
-        actual_season = (
-            standings_data[0]["season"] if standings_data else season
-        )
+        actual_season = standings_data[0]["season"] if standings_data else season
 
         driver_standings = []
         if standings_data:
@@ -76,6 +94,16 @@ class F1Service:
             season=actual_season,
             items=driver_standings,
         )
+
+    async def get_driver_standings_cached(self, season: Optional[str] = "current") -> F1DataModel:
+        redis = await get_redis()
+        cache_key = f"f1:standings:{season}"
+        cached = await redis.get(cache_key)
+        if cached:
+            return F1DataModel(**json.loads(cached))
+        data = self.get_driver_standings(season)
+        await redis.set(cache_key, json.dumps(data.model_dump()), ex=CACHE_TTL)
+        return data
 
     def process_drivers_data(self, raw_data: F1DataModel) -> F1ProcessedModel:
         """

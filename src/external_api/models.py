@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, HttpUrl, ConfigDict
-from typing import Optional, List
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from src.external_api.config import f1_config as cfg
 
 
@@ -130,9 +132,7 @@ class StandingModel(BaseModel):
     points: str = Field(..., description="Total points")
     wins: str = Field(..., description="Number of wins")
     Driver: Optional[DriverModel] = Field(None, description="Driver information")
-    Constructor: Optional[ConstructorModel] = Field(
-        None, description="Constructor information"
-    )
+    Constructor: Optional[ConstructorModel] = Field(None, description="Constructor information")
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 

@@ -1,55 +1,47 @@
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
-from typing import Optional
-from src.external_api.service import service
-from src.external_api.models import F1DataModel, F1ProcessedModel
 
+from src.external_api.models import F1DataModel, F1ProcessedModel
+from src.external_api.service import service
 
 router = APIRouter(prefix="/external", tags=["External F1 API"])
 
 
 @router.get("/data/drivers", response_model=F1DataModel)
-def get_raw_drivers_data() -> F1DataModel:
+async def get_raw_drivers_data() -> F1DataModel:
     """
-    Get raw driver data from F1 API for the current season.
-    Returns unprocessed data directly from Ergast API.
+    Get raw driver data from F1 API for the current season (with Redis cache).
     """
     try:
-        return service.get_current_season_drivers()
+        return await service.get_current_season_drivers_cached()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching drivers data: {str(e)}")
 
 
 @router.get("/data/races", response_model=F1DataModel)
-def get_raw_races_data() -> F1DataModel:
+async def get_raw_races_data() -> F1DataModel:
     """
-    Get raw race calendar data from F1 API for the current season.
-    Returns unprocessed data directly from Ergast API.
+    Get raw race calendar data from F1 API for the current season (with Redis cache).
     """
     try:
-        return service.get_current_season_races()
+        return await service.get_current_season_races_cached()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching races data: {str(e)}")
 
 
 @router.get("/data/standings", response_model=F1DataModel)
-def get_raw_standings_data(
-    season: Optional[str] = Query(
-        "current", description="Season year (e.g., 2024) or 'current'"
-    )
+async def get_raw_standings_data(
+    season: Optional[str] = Query("current", description="Season year (e.g., 2024) or 'current'")
 ) -> F1DataModel:
     """
-    Get raw driver standings data from F1 API.
-    Returns unprocessed data directly from Ergast API.
-    
-    - **season**: Specify a year (e.g., 2024) or use 'current' for the latest season
+    Get raw driver standings data from F1 API (with Redis cache).
     """
     try:
-        return service.get_driver_standings(season)
+        return await service.get_driver_standings_cached(season)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error fetching standings data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error fetching standings data: {str(e)}")
 
 
 @router.get("/processed/drivers", response_model=F1ProcessedModel)
@@ -62,9 +54,7 @@ def get_processed_drivers() -> F1ProcessedModel:
         raw_data = service.get_current_season_drivers()
         return service.process_drivers_data(raw_data)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error processing drivers data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing drivers data: {str(e)}")
 
 
 @router.get("/processed/races", response_model=F1ProcessedModel)
@@ -77,38 +67,28 @@ def get_processed_races() -> F1ProcessedModel:
         raw_data = service.get_current_season_races()
         return service.process_races_data(raw_data)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error processing races data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing races data: {str(e)}")
 
 
 @router.get("/processed/standings", response_model=F1ProcessedModel)
 def get_processed_standings(
-    season: Optional[str] = Query(
-        "current", description="Season year (e.g., 2024) or 'current'"
-    )
+    season: Optional[str] = Query("current", description="Season year (e.g., 2024) or 'current'")
 ) -> F1ProcessedModel:
     """
     Get processed and formatted driver championship standings.
     Returns cleaned and structured data with driver positions, points, and wins.
-    
+
     - **season**: Specify a year (e.g., 2024) or use 'current' for the latest season
     """
     try:
         raw_data = service.get_driver_standings(season)
         return service.process_standings_data(raw_data)
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error processing standings data: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing standings data: {str(e)}")
 
 
 @router.get("/f1/html", response_class=HTMLResponse)
-def get_f1_html(
-    season: Optional[str] = Query(
-        "current", description="Season year (e.g., 2024) or 'current'"
-    )
-) -> str:
+def get_f1_html(season: Optional[str] = Query("current", description="Season year (e.g., 2024) or 'current'")) -> str:
     """
     Return an HTML page displaying F1 championship standings with styled layout.
     Shows driver positions, points, teams, and wins in a formatted table.
@@ -247,7 +227,7 @@ def get_f1_html(
                 <div class="summary">
                     <strong>📊 Summary:</strong> {processed_data.summary}
                 </div>
-                
+
                 <table>
                     <thead>
                         <tr>
@@ -264,7 +244,7 @@ def get_f1_html(
                         {table_rows}
                     </tbody>
                 </table>
-                
+
                 <div class="footer">
                     <p>Data provided by <a href="http://ergast.com/mrd/" target="_blank">Ergast F1 API</a></p>
                     <p>Season: {processed_data.season} | Total Drivers: {processed_data.total_items}</p>

@@ -1,13 +1,15 @@
 """
 Redis cache connection configuration.
 """
+
 import os
 from typing import Optional
+
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
 
 # Get REDIS_URL from environment
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
 
 # Global Redis client
 redis_client: Optional[Redis] = None
@@ -31,7 +33,7 @@ async def init_redis():
     This should be called on application startup.
     """
     global redis_client
-    
+
     try:
         print("🔄 Connecting to Redis...")
         redis_client = await aioredis.from_url(
@@ -40,11 +42,11 @@ async def init_redis():
             decode_responses=True,
             max_connections=10,
         )
-        
+
         # Test connection
         await redis_client.ping()
         print("✅ Redis connected successfully")
-        
+
     except Exception as e:
         print(f"❌ Redis connection failed: {e}")
         print("⚠️  Application will continue without Redis cache")
@@ -57,7 +59,7 @@ async def close_redis():
     Should be called on application shutdown.
     """
     global redis_client
-    
+
     if redis_client:
         try:
             await redis_client.aclose()
