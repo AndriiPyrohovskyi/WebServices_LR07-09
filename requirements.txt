@@ -12,3 +12,6 @@ greenlet==3.1.1
 
 # Cache
 redis==5.0.1
+
+## Monitoring
+sentry-sdk[fastapi]
